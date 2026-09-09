@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Microbial Susceptibility Comparator</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:#12233f;color:white;padding:28px 7%;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:25px} header span{opacity:.75;font-size:13px}
+main{max-width:1150px;margin:30px auto;padding:0 20px}
+.hero{background:white;border-radius:18px;padding:26px;box-shadow:0 8px 30px #14213d12;margin-bottom:22px}
+.hero h2{margin:0 0 8px}.hero p{margin:0;color:#64748b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{background:white;border-radius:16px;padding:22px;box-shadow:0 8px 30px #14213d0d}
+.card h3{margin-top:0}
+label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px;color:#475569}
+input,select{width:100%;padding:11px 12px;border:1px solid #d9e0ea;border-radius:9px;font-size:14px;background:white}
+button{margin-top:20px;width:100%;padding:13px;border:0;border-radius:10px;background:#2563eb;color:white;font-weight:700;cursor:pointer}
+button:hover{background:#1d4ed8}
+.results{margin-top:22px;display:none}.scoregrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.score{padding:20px;border-radius:15px;background:white;border:1px solid #e5eaf1}
+.score .num{font-size:38px;font-weight:800;margin:5px 0}
+.bar{height:10px;background:#e8edf4;border-radius:10px;overflow:hidden}.fill{height:100%;border-radius:10px}
+.low{background:#16a34a}.med{background:#f59e0b}.high{background:#dc2626}
+.reason{background:white;margin-top:18px;padding:20px;border-radius:15px;border-left:5px solid #2563eb}
+.reason li{margin:9px 0;color:#475569}
+.note{font-size:12px;color:#64748b;margin-top:16px}
+@media(max-width:750px){.grid,.scoregrid{grid-template-columns:1fr}header{padding:22px}}
+</style>
+</head>
+<body>
+<header><h1>🧫 Microbial Susceptibility Comparator</h1><span>Prototype • Educational use</span></header>
+<main>
+<section class="hero">
+<h2>Why can the same microorganism affect two people differently?</h2>
+<p>Compare selected host and exposure factors to generate an educational susceptibility profile.</p>
+</section>
+
+<div class="grid">
+<section class="card">
+<h3>🦠 Microorganism</h3>
+<label>Choose microorganism</label>
+<select id="microbe">
+<option value="tb">Mycobacterium tuberculosis</option>
+<option value="salmonella">Salmonella enterica</option>
+<option value="staph">Staphylococcus aureus</option>
+<option value="candida">Candida albicans</option>
+<option value="malaria">Plasmodium (malaria parasite)</option>
+</select>
+<label>Exposure level</label>
+<select id="exposure">
+<option value="1">Low</option><option value="2" selected>Moderate</option><option value="3">High</option>
+</select>
+</section>
+
+<section class="card">
+<h3>👤 Person 1</h3>
+<label>Age</label><input id="age1" type="number" value="65" min="1" max="120">
+<label>Immune status</label>
+<select id="immune1"><option value="1">Normal</option><option value="2">Reduced</option><option value="3">Severely reduced</option></select>
+<label>Previous exposure / immunity</label>
+<select id="prev1"><option value="0">No known exposure</option><option value="-1">Previous exposure / immunity</option></select>
+<label>Relevant risk factor</label>
+<select id="risk1"><option value="0">None selected</option><option value="2">Present</option></select>
+</section>
+
+<section class="card">
+<h3>👤 Person 2</h3>
+<label>Age</label><input id="age2" type="number" value="22" min="1" max="120">
+<label>Immune status</label>
+<select id="immune2"><option value="1">Normal</option><option value="2">Reduced</option><option value="3">Severely reduced</option></select>
+<label>Previous exposure / immunity</label>
+<select id="prev2"><option value="0">No known exposure</option><option value="-1">Previous exposure / immunity</option></select>
+<label>Relevant risk factor</label>
+<select id="risk2"><option value="0">None selected</option><option value="2">Present</option></select>
+</section>
+</div>
+
+<button onclick="compare()">Compare Susceptibility</button>
+
+<section class="results" id="results">
+<div class="scoregrid">
+<div class="score"><b>Person 1</b><div class="num" id="s1">0</div><div class="bar"><div id="b1" class="fill"></div></div><p id="l1"></p></div>
+<div class="score"><b>Person 2</b><div class="num" id="s2">0</div><div class="bar"><div id="b2" class="fill"></div></div><p id="l2"></p></div>
+</div>
+<div class="reason"><h3 id="verdict"></h3><ul id="reasons"></ul></div>
+<p class="note">⚠️ Prototype only. This score is a demonstration model, not a medical diagnosis or a validated clinical prediction tool.</p>
+</section>
+</main>
+
+<script>
+function calc(age,immune,prev,risk,exposure){
+  let s=20;
+  if(age<5||age>=65)s+=15; else if(age>=50)s+=7;
+  s+=(immune-1)*18;
+  s+=prev;
+  s+=risk;
+  s+=(exposure-1)*8;
+  return Math.max(0,Math.min(100,s));
+}
+function label(s){return s<35?"Lower relative susceptibility":s<65?"Moderate relative susceptibility":"Higher relative susceptibility"}
+function setScore(id,s){
+ document.getElementById(id).textContent=s+"/100";
+ let b=document.getElementById(id==="s1"?"b1":"b2");
+ b.style.width=s+"%"; b.className="fill "+(s<35?"low":s<65?"med":"high");
+ document.getElementById(id==="s1"?"l1":"l2").textContent=label(s);
+}
+function compare(){
+ const exp=+document.getElementById("exposure").value;
+ const s1=calc(+age1.value,+immune1.value,+prev1.value,+risk1.value,exp);
+ const s2=calc(+age2.value,+immune2.value,+prev2.value,+risk2.value,exp);
+ setScore("s1",s1);setScore("s2",s2);
+ const reasons=[];
+ if(+immune1.value>+immune2.value) reasons.push("Person 1 has a greater selected immune-status risk factor.");
+ if(+age1.value>=65 && +age2.value<65) reasons.push("Person 1 is in an age group that can carry higher risk for some infections.");
+ if(+prev1.value<+prev2.value) reasons.push("The selected previous-exposure/immunity factor favors Person 2.");
+ if(+risk1.value>+risk2.value) reasons.push("A relevant risk factor was selected for Person 1.");
+ if(!reasons.length) reasons.push("The selected factors are similar, so the prototype estimates similar relative susceptibility.");
+ document.getElementById("verdict").textContent=s1>s2?"Person 1 shows higher relative susceptibility":"Person 2 shows higher relative susceptibility";
+ if(s1===s2) document.getElementById("verdict").textContent="Both show similar relative susceptibility";
+ document.getElementById("reasons").innerHTML=reasons.map(x=>"<li>"+x+"</li>").join("");
+ document.getElementById("results").style.display="block";
+}
+</script>
+</body>
+</html>
